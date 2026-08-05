@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # simple-openmp-hook: Interceptação Dinâmica do Runtime GNU OpenMP (GOMP)
 
 O **simple-openmp-hook** é uma biblioteca de instrumentação dinâmica e interceptação (*hooking*) desenvolvida para o runtime OpenMP do GCC (**libgomp**). Através da técnica de interposição de biblioteca compartilhada via `LD_PRELOAD`, o projeto intercepta chamadas internas da ABI `GOMP_*` e permite a execução de rotinas customizadas de pré e pós-processamento (`PRE_*` e `POST_*`) sem a necessidade de alterar o código-fonte da aplicação nem recompilar a biblioteca nativa OpenMP.
@@ -128,4 +127,3 @@ Este projeto está disponível sob a licença aberta do repositório.
 OpenMP Hook
 
 HOOKOMP
->>>>>>> refs/remotes/origin/main
