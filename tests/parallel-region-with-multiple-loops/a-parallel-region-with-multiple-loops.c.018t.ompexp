@@ -1,0 +1,181 @@
+
+;; Function main (main, funcdef_no=6, decl_uid=4408, cgraph_uid=9, symbol_order=8)
+
+
+OMP region tree
+
+bb 2: gimple_omp_parallel
+    bb 6: gimple_omp_for
+    bb 7: GIMPLE_OMP_CONTINUE
+    bb 8: GIMPLE_OMP_RETURN
+    bb 3: gimple_omp_for
+    bb 4: GIMPLE_OMP_CONTINUE
+    bb 5: GIMPLE_OMP_RETURN
+bb 9: GIMPLE_OMP_RETURN
+
+Added new low gimple function main._omp_fn.0 to callgraph
+Introduced new external node (__builtin_GOMP_loop_nonmonotonic_dynamic_start/11).
+Introduced new external node (omp_get_thread_num/12).
+Introduced new external node (__builtin_GOMP_loop_nonmonotonic_dynamic_next/13).
+Introduced new external node (__builtin_GOMP_loop_end/14).
+Introduced new external node (__builtin_GOMP_loop_maybe_nonmonotonic_runtime_start/15).
+Introduced new external node (__builtin_GOMP_loop_maybe_nonmonotonic_runtime_next/16).
+Introduced new external node (__builtin_GOMP_loop_end_nowait/17).
+
+;; Function main._omp_fn.0 (main._omp_fn.0, funcdef_no=7, decl_uid=4423, cgraph_uid=10, symbol_order=9)
+
+void main._omp_fn.0 (struct .omp_data_s.0 & restrict .omp_data_i)
+{
+  int loop_index [value-expr: .omp_data_i->loop_index];
+  _Bool D.4463;
+  int D.4462;
+  int D.4461;
+  long int .iend0.5;
+  int i;
+  long int .istart0.4;
+  _Bool D.4457;
+  long int .iend0.3;
+  long int .istart0.2;
+  _Bool D.4454;
+  int D.4453;
+  int D.4452;
+  long int .iend0.9;
+  int i;
+  long int .istart0.8;
+  _Bool D.4448;
+  long int .iend0.7;
+  long int .istart0.6;
+
+  <bb 19> :
+
+  <bb 3> :
+  .omp_data_i->loop_index = 0;
+  D.4448 = __builtin_GOMP_loop_nonmonotonic_dynamic_start (0, 8, 1, 1, &.istart0.6, &.iend0.7);
+  if (D.4448 != 0)
+    goto <bb 17>; [INV]
+  else
+    goto <bb 5>; [INV]
+
+  <bb 17> :
+  .istart0.8 = .istart0.6;
+  i = (int) .istart0.8;
+  .iend0.9 = .iend0.7;
+  D.4452 = (int) .iend0.9;
+
+  <bb 4> :
+  D.4453 = omp_get_thread_num ();
+  loop_0[i] = D.4453;
+  i = i + 1;
+  if (i < D.4452)
+    goto <bb 4>; [87.50%]
+  else
+    goto <bb 18>; [12.50%]
+
+  <bb 18> :
+  D.4454 = __builtin_GOMP_loop_nonmonotonic_dynamic_next (&.istart0.6, &.iend0.7);
+  if (D.4454 != 0)
+    goto <bb 17>; [INV]
+  else
+    goto <bb 5>; [INV]
+
+  <bb 5> :
+  __builtin_GOMP_loop_end ();
+
+  <bb 6> :
+  .omp_data_i->loop_index = 1;
+  D.4457 = __builtin_GOMP_loop_maybe_nonmonotonic_runtime_start (0, 8, 1, &.istart0.2, &.iend0.3);
+  if (D.4457 != 0)
+    goto <bb 15>; [INV]
+  else
+    goto <bb 8>; [INV]
+
+  <bb 15> :
+  .istart0.4 = .istart0.2;
+  i = (int) .istart0.4;
+  .iend0.5 = .iend0.3;
+  D.4461 = (int) .iend0.5;
+
+  <bb 7> :
+  D.4462 = omp_get_thread_num ();
+  loop_1[i] = D.4462;
+  i = i + 1;
+  if (i < D.4461)
+    goto <bb 7>; [87.50%]
+  else
+    goto <bb 16>; [12.50%]
+
+  <bb 16> :
+  D.4463 = __builtin_GOMP_loop_maybe_nonmonotonic_runtime_next (&.istart0.2, &.iend0.3);
+  if (D.4463 != 0)
+    goto <bb 15>; [INV]
+  else
+    goto <bb 8>; [INV]
+
+  <bb 8> :
+  __builtin_GOMP_loop_end_nowait ();
+
+  <bb 9> :
+  return;
+
+}
+
+
+
+;; Function main (main, funcdef_no=6, decl_uid=4408, cgraph_uid=9, symbol_order=8)
+
+Merging blocks 2 and 20
+Merging blocks 2 and 10
+int main ()
+{
+  _Bool D.4445;
+  long int .iend0.9;
+  int D.4444;
+  long int .istart0.8;
+  _Bool D.4441;
+  long int .iend0.7;
+  long int .istart0.6;
+  _Bool D.4438;
+  long int .iend0.5;
+  int D.4437;
+  long int .istart0.4;
+  _Bool D.4434;
+  long int .iend0.3;
+  long int .istart0.2;
+  int i;
+  int i;
+  int loop_index;
+  int i;
+  int D.4421;
+  struct .omp_data_s.0 .omp_data_o.1;
+
+  <bb 2> :
+  .omp_data_o.1.loop_index = loop_index;
+  __builtin_GOMP_parallel (main._omp_fn.0, &.omp_data_o.1, 1, 0);
+  loop_index = .omp_data_o.1.loop_index;
+  .omp_data_o.1 = {CLOBBER};
+  __builtin_puts (&"Fora da regi\xc3\xa3o paralela."[0]);
+  i = 0;
+  goto <bb 4>; [INV]
+
+  <bb 3> :
+  _1 = loop_1[i];
+  _2 = loop_0[i];
+  printf ("loop_0[%d]: %lu, loop_1[%d]: %lu\n", i, _2, i, _1);
+  i = i + 1;
+
+  <bb 4> :
+  if (i <= 7)
+    goto <bb 3>; [INV]
+  else
+    goto <bb 5>; [INV]
+
+  <bb 5> :
+  D.4421 = 0;
+
+  <bb 6> :
+<L3>:
+  return D.4421;
+
+}
+
+
