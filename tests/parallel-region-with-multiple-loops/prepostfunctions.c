@@ -14,6 +14,16 @@ void print_results(){
 	printf("Number of loop dynamic next: %d\n", num_loop_dynamic_next);
 }
 
+void PRE_GOMP_parallel (void){
+	PRINT_FUNC_NAME;
+	num_parallel_regions++;
+}
+
+void POST_GOMP_parallel (void){
+	PRINT_FUNC_NAME;
+	print_results();
+}
+
 void PRE_GOMP_parallel_start (void){
 	PRINT_FUNC_NAME;
 	num_parallel_regions++;

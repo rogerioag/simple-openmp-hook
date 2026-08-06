@@ -20,6 +20,16 @@ void print_results(){
 	printf("Number of Finished tasks: %d\n", num_tasks_finished);
 }
 
+void PRE_GOMP_parallel (void){
+	PRINT_FUNC_NAME;
+	num_parallel_regions++;
+}
+
+void POST_GOMP_parallel (void){
+	PRINT_FUNC_NAME;
+	print_results();
+}
+
 void PRE_GOMP_parallel_start (void){
 	PRINT_FUNC_NAME;
 	num_parallel_regions++;
