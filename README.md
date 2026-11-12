@@ -4,9 +4,9 @@ O **simple-openmp-hook** é uma biblioteca de instrumentação dinâmica e inter
 
 ---
 
-## 🎯 Visão Geral e Arquitetura
+## Visão Geral e Arquitetura
 
-Quando um compilador GCC processa código C/C++ contendo diretivas OpenMP (ex: `#pragma omp parallel`, `#pragma omp for`, `#pragma omp task`), ele converte essas diretivas em chamadas para funções da ABI GNU OpenMP (`GOMP_parallel_start`, `GOMP_loop_dynamic_start`, `GOMP_task`, etc.).
+Quando um compilador `GCC` processa código C/C++ contendo diretivas OpenMP (ex: `#pragma omp parallel`, `#pragma omp for`, `#pragma omp task`), ele converte essas diretivas em chamadas para funções da ABI GNU OpenMP (`GOMP_parallel_start`, `GOMP_loop_dynamic_start`, `GOMP_task`, etc.).
 
 O **simple-openmp-hook** atua como uma camada intermediária entre a aplicação e a `libgomp`:
 
