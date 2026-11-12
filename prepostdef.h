@@ -311,6 +311,9 @@ void POST_GOMP_taskwait(void);
 void PRE_GOMP_taskwait_depend(void);
 void POST_GOMP_taskwait_depend(void);
 
+void PRE_GOMP_taskwait_depend_nowait(void);
+void POST_GOMP_taskwait_depend_nowait(void);
+
 void PRE_GOMP_taskyield(void);
 void POST_GOMP_taskyield(void);
 
@@ -395,8 +398,17 @@ void POST_GOMP_teams(void);
 void PRE_GOMP_teams4(void);
 void POST_GOMP_teams4(void);
 
+void PRE_GOMP_interop(void);
+void POST_GOMP_interop(void);
+
 void PRE_GOMP_teams_reg(void);
 void POST_GOMP_teams_reg(void);
+
+void PRE_GOMP_add_alloc(void);
+void POST_GOMP_add_alloc(void);
+
+void PRE_GOMP_is_alloc(void);
+void POST_GOMP_is_alloc(void);
 
 void PRE_GOMP_free(void);
 void POST_GOMP_free(void);

@@ -106,6 +106,7 @@ void (*lib_GOMP_taskloop) (void (*) (void *), void *, void (*) (void *, void *),
 void (*lib_GOMP_taskloop_ull) (void (*) (void *), void *, void (*) (void *, void *), long, long, unsigned, unsigned long, int, unsigned long long, unsigned long long, unsigned long long) = NULL;
 void (*lib_GOMP_taskwait) (void) = NULL;
 void (*lib_GOMP_taskwait_depend) (void **) = NULL;
+void (*lib_GOMP_taskwait_depend_nowait) (void **) = NULL;
 void (*lib_GOMP_taskyield) (void) = NULL;
 void (*lib_GOMP_taskgroup_start) (void) = NULL;
 void (*lib_GOMP_taskgroup_end) (void) = NULL;
@@ -134,7 +135,10 @@ void (*lib_GOMP_target_update_ext) (int, size_t, void **, size_t *, unsigned sho
 void (*lib_GOMP_target_enter_exit_data) (int, size_t, void **, size_t *, unsigned short *, unsigned int, void **) = NULL;
 void (*lib_GOMP_teams) (unsigned int, unsigned int) = NULL;
 bool (*lib_GOMP_teams4) (unsigned int, unsigned int, unsigned int, bool) = NULL;
+void (*lib_GOMP_interop) (int, int, struct interop_obj_t ***, const int *, const char **, int, struct interop_obj_t **, int, struct interop_obj_t ***, unsigned, void **) = NULL;
 void (*lib_GOMP_teams_reg) (void (*) (void *), void *, unsigned, unsigned, unsigned) = NULL;
+void (*lib_GOMP_add_alloc) (void *) = NULL;
+bool (*lib_GOMP_is_alloc) (void *) = NULL;
 void (*lib_GOMP_free) (void *, uintptr_t) = NULL;
 void (*lib_GOMP_warning) (const char *, size_t) = NULL;
 void (*lib_GOMP_error) (const char *, size_t) = NULL;
@@ -344,6 +348,8 @@ void __attribute__((weak)) PRE_GOMP_taskwait(void) {}
 void __attribute__((weak)) POST_GOMP_taskwait(void) {}
 void __attribute__((weak)) PRE_GOMP_taskwait_depend(void) {}
 void __attribute__((weak)) POST_GOMP_taskwait_depend(void) {}
+void __attribute__((weak)) PRE_GOMP_taskwait_depend_nowait(void) {}
+void __attribute__((weak)) POST_GOMP_taskwait_depend_nowait(void) {}
 void __attribute__((weak)) PRE_GOMP_taskyield(void) {}
 void __attribute__((weak)) POST_GOMP_taskyield(void) {}
 void __attribute__((weak)) PRE_GOMP_taskgroup_start(void) {}
@@ -400,8 +406,14 @@ void __attribute__((weak)) PRE_GOMP_teams(void) {}
 void __attribute__((weak)) POST_GOMP_teams(void) {}
 void __attribute__((weak)) PRE_GOMP_teams4(void) {}
 void __attribute__((weak)) POST_GOMP_teams4(void) {}
+void __attribute__((weak)) PRE_GOMP_interop(void) {}
+void __attribute__((weak)) POST_GOMP_interop(void) {}
 void __attribute__((weak)) PRE_GOMP_teams_reg(void) {}
 void __attribute__((weak)) POST_GOMP_teams_reg(void) {}
+void __attribute__((weak)) PRE_GOMP_add_alloc(void) {}
+void __attribute__((weak)) POST_GOMP_add_alloc(void) {}
+void __attribute__((weak)) PRE_GOMP_is_alloc(void) {}
+void __attribute__((weak)) POST_GOMP_is_alloc(void) {}
 void __attribute__((weak)) PRE_GOMP_free(void) {}
 void __attribute__((weak)) POST_GOMP_free(void) {}
 void __attribute__((weak)) PRE_GOMP_warning(void) {}
@@ -1294,6 +1306,14 @@ void GOMP_taskwait_depend (void ** arg1) {
     POST_GOMP_taskwait_depend();
 }
 
+void GOMP_taskwait_depend_nowait (void ** arg1) {
+    PRINT_FUNC_NAME;
+    GET_RUNTIME_FUNCTION(lib_GOMP_taskwait_depend_nowait, "GOMP_taskwait_depend_nowait");
+    PRE_GOMP_taskwait_depend_nowait();
+    lib_GOMP_taskwait_depend_nowait(arg1);
+    POST_GOMP_taskwait_depend_nowait();
+}
+
 void GOMP_taskyield () {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_taskyield, "GOMP_taskyield");
@@ -1524,12 +1544,37 @@ bool GOMP_teams4 (unsigned int arg1, unsigned int arg2, unsigned int arg3, bool 
     return res;
 }
 
+void GOMP_interop (int arg1, int arg2, struct interop_obj_t *** arg3, const int * arg4, const char ** arg5, int arg6, struct interop_obj_t ** arg7, int arg8, struct interop_obj_t *** arg9, unsigned arg10, void ** arg11) {
+    PRINT_FUNC_NAME;
+    GET_RUNTIME_FUNCTION(lib_GOMP_interop, "GOMP_interop");
+    PRE_GOMP_interop();
+    lib_GOMP_interop(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);
+    POST_GOMP_interop();
+}
+
 void GOMP_teams_reg (void (*arg1) (void *), void * arg2, unsigned arg3, unsigned arg4, unsigned arg5) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_teams_reg, "GOMP_teams_reg");
     PRE_GOMP_teams_reg();
     lib_GOMP_teams_reg(arg1, arg2, arg3, arg4, arg5);
     POST_GOMP_teams_reg();
+}
+
+void GOMP_add_alloc (void * arg1) {
+    PRINT_FUNC_NAME;
+    GET_RUNTIME_FUNCTION(lib_GOMP_add_alloc, "GOMP_add_alloc");
+    PRE_GOMP_add_alloc();
+    lib_GOMP_add_alloc(arg1);
+    POST_GOMP_add_alloc();
+}
+
+bool GOMP_is_alloc (void * arg1) {
+    PRINT_FUNC_NAME;
+    GET_RUNTIME_FUNCTION(lib_GOMP_is_alloc, "GOMP_is_alloc");
+    PRE_GOMP_is_alloc();
+    bool res = lib_GOMP_is_alloc(arg1);
+    POST_GOMP_is_alloc();
+    return res;
 }
 
 void GOMP_free (void * arg1, uintptr_t arg2) {

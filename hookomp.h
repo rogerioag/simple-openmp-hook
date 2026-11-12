@@ -124,6 +124,7 @@ extern void (*lib_GOMP_taskloop) (void (*) (void *), void *, void (*) (void *, v
 extern void (*lib_GOMP_taskloop_ull) (void (*) (void *), void *, void (*) (void *, void *), long, long, unsigned, unsigned long, int, unsigned long long, unsigned long long, unsigned long long);
 extern void (*lib_GOMP_taskwait) (void);
 extern void (*lib_GOMP_taskwait_depend) (void **);
+extern void (*lib_GOMP_taskwait_depend_nowait) (void **);
 extern void (*lib_GOMP_taskyield) (void);
 extern void (*lib_GOMP_taskgroup_start) (void);
 extern void (*lib_GOMP_taskgroup_end) (void);
@@ -152,7 +153,10 @@ extern void (*lib_GOMP_target_update_ext) (int, size_t, void **, size_t *, unsig
 extern void (*lib_GOMP_target_enter_exit_data) (int, size_t, void **, size_t *, unsigned short *, unsigned int, void **);
 extern void (*lib_GOMP_teams) (unsigned int, unsigned int);
 extern bool (*lib_GOMP_teams4) (unsigned int, unsigned int, unsigned int, bool);
+extern void (*lib_GOMP_interop) (int, int, struct interop_obj_t ***, const int *, const char **, int, struct interop_obj_t **, int, struct interop_obj_t ***, unsigned, void **);
 extern void (*lib_GOMP_teams_reg) (void (*) (void *), void *, unsigned, unsigned, unsigned);
+extern void (*lib_GOMP_add_alloc) (void *);
+extern bool (*lib_GOMP_is_alloc) (void *);
 extern void (*lib_GOMP_free) (void *, uintptr_t);
 extern void (*lib_GOMP_warning) (const char *, size_t);
 extern void (*lib_GOMP_error) (const char *, size_t);
