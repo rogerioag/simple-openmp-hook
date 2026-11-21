@@ -1,5 +1,5 @@
-#ifndef PREPOSTDEF_H
-#define PREPOSTDEF_H
+#ifndef PREPOSTDEF_GOMP_H
+#define PREPOSTDEF_GOMP_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -423,4 +423,4 @@ void POST_GOMP_error(void);
 }
 #endif
 
-#endif /* PREPOSTDEF_H */
+#endif /* PREPOSTDEF_GOMP_H */

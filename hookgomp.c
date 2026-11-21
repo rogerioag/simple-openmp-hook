@@ -1,4 +1,4 @@
-#include "hookomp.h"
+#include "hookgomp.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -421,6 +421,44 @@ void __attribute__((weak)) POST_GOMP_warning(void) {}
 void __attribute__((weak)) PRE_GOMP_error(void) {}
 void __attribute__((weak)) POST_GOMP_error(void) {}
 
+#ifdef HOOK_USE_LIBFFI
+#include <ffi.h>
+#endif
+#include <stdlib.h>
+
+/* Laços doacross com até HOOK_GOMP_SWITCH_MAX_ARGS dimensões usam o switch;
+ * acima disso, libffi (HOOK_USE_LIBFFI) ou abort(). */
+#define HOOK_GOMP_SWITCH_MAX_ARGS 32
+
+/* ncounts do laço doacross atual desta thread (0 = nenhum). */
+static __thread unsigned hook_gomp_doacross_ncounts = 0;
+
+/* Encaminha values[0..n-1] (cada um com tamanho size e tipo ffi type_name)
+ * para uma função variádica fn(first, ...). */
+static void hook_gomp_forward_variadic(const char *name, void (*fn)(void), const char *type_name,
+                                       size_t size, void *values, unsigned n) {
+#ifdef HOOK_USE_LIBFFI
+    ffi_type *t = type_name[0] == 'u' ? &ffi_type_uint64 : &ffi_type_slong;
+    ffi_type *types[n];
+    void *args[n];
+    for (unsigned i = 0; i < n; i++) {
+        types[i] = t;
+        args[i] = (char *) values + i * size;   /* ffi_call recebe ponteiros para cada valor */
+    }
+    ffi_cif cif;
+    if (ffi_prep_cif_var(&cif, FFI_DEFAULT_ABI, 1, n, &ffi_type_void, types) != FFI_OK) {
+        fprintf(stderr, "hookgomp: ffi_prep_cif_var falhou em %s (n=%u)\n", name, n);
+        abort();
+    }
+    ffi_call(&cif, fn, NULL, args);
+#else
+    (void) fn; (void) type_name; (void) size; (void) values;
+    fprintf(stderr, "hookgomp: %s chamada com %u argumentos (máximo sem libffi: %d). "
+                    "Recompile com USE_LIBFFI=1.\n", name, n, HOOK_GOMP_SWITCH_MAX_ARGS);
+    abort();
+#endif
+}
+
 /* Funções de Interceptação */
 
 void GOMP_barrier () {
@@ -725,6 +763,7 @@ bool GOMP_loop_ordered_runtime_next (long * arg1, long * arg2) {
 bool GOMP_loop_doacross_static_start (unsigned arg1, long * arg2, long arg3, long * arg4, long * arg5) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_loop_doacross_static_start, "GOMP_loop_doacross_static_start");
+    hook_gomp_doacross_ncounts = arg1;
     PRE_GOMP_loop_doacross_static_start();
     bool res = lib_GOMP_loop_doacross_static_start(arg1, arg2, arg3, arg4, arg5);
     POST_GOMP_loop_doacross_static_start();
@@ -734,6 +773,7 @@ bool GOMP_loop_doacross_static_start (unsigned arg1, long * arg2, long arg3, lon
 bool GOMP_loop_doacross_dynamic_start (unsigned arg1, long * arg2, long arg3, long * arg4, long * arg5) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_loop_doacross_dynamic_start, "GOMP_loop_doacross_dynamic_start");
+    hook_gomp_doacross_ncounts = arg1;
     PRE_GOMP_loop_doacross_dynamic_start();
     bool res = lib_GOMP_loop_doacross_dynamic_start(arg1, arg2, arg3, arg4, arg5);
     POST_GOMP_loop_doacross_dynamic_start();
@@ -743,6 +783,7 @@ bool GOMP_loop_doacross_dynamic_start (unsigned arg1, long * arg2, long arg3, lo
 bool GOMP_loop_doacross_guided_start (unsigned arg1, long * arg2, long arg3, long * arg4, long * arg5) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_loop_doacross_guided_start, "GOMP_loop_doacross_guided_start");
+    hook_gomp_doacross_ncounts = arg1;
     PRE_GOMP_loop_doacross_guided_start();
     bool res = lib_GOMP_loop_doacross_guided_start(arg1, arg2, arg3, arg4, arg5);
     POST_GOMP_loop_doacross_guided_start();
@@ -752,6 +793,7 @@ bool GOMP_loop_doacross_guided_start (unsigned arg1, long * arg2, long arg3, lon
 bool GOMP_loop_doacross_runtime_start (unsigned arg1, long * arg2, long * arg3, long * arg4) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_loop_doacross_runtime_start, "GOMP_loop_doacross_runtime_start");
+    hook_gomp_doacross_ncounts = arg1;
     PRE_GOMP_loop_doacross_runtime_start();
     bool res = lib_GOMP_loop_doacross_runtime_start(arg1, arg2, arg3, arg4);
     POST_GOMP_loop_doacross_runtime_start();
@@ -761,6 +803,7 @@ bool GOMP_loop_doacross_runtime_start (unsigned arg1, long * arg2, long * arg3, 
 bool GOMP_loop_doacross_start (unsigned arg1, long * arg2, long arg3, long arg4, long * arg5, long * arg6, uintptr_t * arg7, void ** arg8) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_loop_doacross_start, "GOMP_loop_doacross_start");
+    hook_gomp_doacross_ncounts = arg1;
     PRE_GOMP_loop_doacross_start();
     bool res = lib_GOMP_loop_doacross_start(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
     POST_GOMP_loop_doacross_start();
@@ -802,64 +845,80 @@ void GOMP_parallel_loop_runtime_start (void (*arg1)(void *), void * arg2, unsign
 void GOMP_parallel_loop_static (void (*arg1)(void *), void * arg2, unsigned arg3, long arg4, long arg5, long arg6, long arg7, unsigned arg8) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_parallel_loop_static, "GOMP_parallel_loop_static");
+    unsigned hook_saved_ncounts = hook_gomp_doacross_ncounts;
     PRE_GOMP_parallel_loop_static();
     lib_GOMP_parallel_loop_static(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+    hook_gomp_doacross_ncounts = hook_saved_ncounts;
     POST_GOMP_parallel_loop_static();
 }
 
 void GOMP_parallel_loop_dynamic (void (*arg1)(void *), void * arg2, unsigned arg3, long arg4, long arg5, long arg6, long arg7, unsigned arg8) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_parallel_loop_dynamic, "GOMP_parallel_loop_dynamic");
+    unsigned hook_saved_ncounts = hook_gomp_doacross_ncounts;
     PRE_GOMP_parallel_loop_dynamic();
     lib_GOMP_parallel_loop_dynamic(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+    hook_gomp_doacross_ncounts = hook_saved_ncounts;
     POST_GOMP_parallel_loop_dynamic();
 }
 
 void GOMP_parallel_loop_guided (void (*arg1)(void *), void * arg2, unsigned arg3, long arg4, long arg5, long arg6, long arg7, unsigned arg8) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_parallel_loop_guided, "GOMP_parallel_loop_guided");
+    unsigned hook_saved_ncounts = hook_gomp_doacross_ncounts;
     PRE_GOMP_parallel_loop_guided();
     lib_GOMP_parallel_loop_guided(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+    hook_gomp_doacross_ncounts = hook_saved_ncounts;
     POST_GOMP_parallel_loop_guided();
 }
 
 void GOMP_parallel_loop_runtime (void (*arg1)(void *), void * arg2, unsigned arg3, long arg4, long arg5, long arg6, unsigned arg7) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_parallel_loop_runtime, "GOMP_parallel_loop_runtime");
+    unsigned hook_saved_ncounts = hook_gomp_doacross_ncounts;
     PRE_GOMP_parallel_loop_runtime();
     lib_GOMP_parallel_loop_runtime(arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+    hook_gomp_doacross_ncounts = hook_saved_ncounts;
     POST_GOMP_parallel_loop_runtime();
 }
 
 void GOMP_parallel_loop_nonmonotonic_dynamic (void (*arg1)(void *), void * arg2, unsigned arg3, long arg4, long arg5, long arg6, long arg7, unsigned arg8) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_parallel_loop_nonmonotonic_dynamic, "GOMP_parallel_loop_nonmonotonic_dynamic");
+    unsigned hook_saved_ncounts = hook_gomp_doacross_ncounts;
     PRE_GOMP_parallel_loop_nonmonotonic_dynamic();
     lib_GOMP_parallel_loop_nonmonotonic_dynamic(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+    hook_gomp_doacross_ncounts = hook_saved_ncounts;
     POST_GOMP_parallel_loop_nonmonotonic_dynamic();
 }
 
 void GOMP_parallel_loop_nonmonotonic_guided (void (*arg1)(void *), void * arg2, unsigned arg3, long arg4, long arg5, long arg6, long arg7, unsigned arg8) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_parallel_loop_nonmonotonic_guided, "GOMP_parallel_loop_nonmonotonic_guided");
+    unsigned hook_saved_ncounts = hook_gomp_doacross_ncounts;
     PRE_GOMP_parallel_loop_nonmonotonic_guided();
     lib_GOMP_parallel_loop_nonmonotonic_guided(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
+    hook_gomp_doacross_ncounts = hook_saved_ncounts;
     POST_GOMP_parallel_loop_nonmonotonic_guided();
 }
 
 void GOMP_parallel_loop_nonmonotonic_runtime (void (*arg1)(void *), void * arg2, unsigned arg3, long arg4, long arg5, long arg6, unsigned arg7) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_parallel_loop_nonmonotonic_runtime, "GOMP_parallel_loop_nonmonotonic_runtime");
+    unsigned hook_saved_ncounts = hook_gomp_doacross_ncounts;
     PRE_GOMP_parallel_loop_nonmonotonic_runtime();
     lib_GOMP_parallel_loop_nonmonotonic_runtime(arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+    hook_gomp_doacross_ncounts = hook_saved_ncounts;
     POST_GOMP_parallel_loop_nonmonotonic_runtime();
 }
 
 void GOMP_parallel_loop_maybe_nonmonotonic_runtime (void (*arg1)(void *), void * arg2, unsigned arg3, long arg4, long arg5, long arg6, unsigned arg7) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_parallel_loop_maybe_nonmonotonic_runtime, "GOMP_parallel_loop_maybe_nonmonotonic_runtime");
+    unsigned hook_saved_ncounts = hook_gomp_doacross_ncounts;
     PRE_GOMP_parallel_loop_maybe_nonmonotonic_runtime();
     lib_GOMP_parallel_loop_maybe_nonmonotonic_runtime(arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+    hook_gomp_doacross_ncounts = hook_saved_ncounts;
     POST_GOMP_parallel_loop_maybe_nonmonotonic_runtime();
 }
 
@@ -1125,6 +1184,7 @@ bool GOMP_loop_ull_ordered_runtime_next (unsigned long long * arg1, unsigned lon
 bool GOMP_loop_ull_doacross_static_start (unsigned arg1, unsigned long long * arg2, unsigned long long arg3, unsigned long long * arg4, unsigned long long * arg5) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_loop_ull_doacross_static_start, "GOMP_loop_ull_doacross_static_start");
+    hook_gomp_doacross_ncounts = arg1;
     PRE_GOMP_loop_ull_doacross_static_start();
     bool res = lib_GOMP_loop_ull_doacross_static_start(arg1, arg2, arg3, arg4, arg5);
     POST_GOMP_loop_ull_doacross_static_start();
@@ -1134,6 +1194,7 @@ bool GOMP_loop_ull_doacross_static_start (unsigned arg1, unsigned long long * ar
 bool GOMP_loop_ull_doacross_dynamic_start (unsigned arg1, unsigned long long * arg2, unsigned long long arg3, unsigned long long * arg4, unsigned long long * arg5) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_loop_ull_doacross_dynamic_start, "GOMP_loop_ull_doacross_dynamic_start");
+    hook_gomp_doacross_ncounts = arg1;
     PRE_GOMP_loop_ull_doacross_dynamic_start();
     bool res = lib_GOMP_loop_ull_doacross_dynamic_start(arg1, arg2, arg3, arg4, arg5);
     POST_GOMP_loop_ull_doacross_dynamic_start();
@@ -1143,6 +1204,7 @@ bool GOMP_loop_ull_doacross_dynamic_start (unsigned arg1, unsigned long long * a
 bool GOMP_loop_ull_doacross_guided_start (unsigned arg1, unsigned long long * arg2, unsigned long long arg3, unsigned long long * arg4, unsigned long long * arg5) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_loop_ull_doacross_guided_start, "GOMP_loop_ull_doacross_guided_start");
+    hook_gomp_doacross_ncounts = arg1;
     PRE_GOMP_loop_ull_doacross_guided_start();
     bool res = lib_GOMP_loop_ull_doacross_guided_start(arg1, arg2, arg3, arg4, arg5);
     POST_GOMP_loop_ull_doacross_guided_start();
@@ -1152,6 +1214,7 @@ bool GOMP_loop_ull_doacross_guided_start (unsigned arg1, unsigned long long * ar
 bool GOMP_loop_ull_doacross_runtime_start (unsigned arg1, unsigned long long * arg2, unsigned long long * arg3, unsigned long long * arg4) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_loop_ull_doacross_runtime_start, "GOMP_loop_ull_doacross_runtime_start");
+    hook_gomp_doacross_ncounts = arg1;
     PRE_GOMP_loop_ull_doacross_runtime_start();
     bool res = lib_GOMP_loop_ull_doacross_runtime_start(arg1, arg2, arg3, arg4);
     POST_GOMP_loop_ull_doacross_runtime_start();
@@ -1161,6 +1224,7 @@ bool GOMP_loop_ull_doacross_runtime_start (unsigned arg1, unsigned long long * a
 bool GOMP_loop_ull_doacross_start (unsigned arg1, unsigned long long * arg2, long arg3, unsigned long long arg4, unsigned long long * arg5, unsigned long long * arg6, uintptr_t * arg7, void ** arg8) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_loop_ull_doacross_start, "GOMP_loop_ull_doacross_start");
+    hook_gomp_doacross_ncounts = arg1;
     PRE_GOMP_loop_ull_doacross_start();
     bool res = lib_GOMP_loop_ull_doacross_start(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
     POST_GOMP_loop_ull_doacross_start();
@@ -1191,11 +1255,56 @@ void GOMP_doacross_post (long * arg1) {
     POST_GOMP_doacross_post();
 }
 
-__attribute__((always_inline)) inline void GOMP_doacross_wait (long arg1, ...) {
+void GOMP_doacross_wait (long arg1, ...) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_doacross_wait, "GOMP_doacross_wait");
+    unsigned n = hook_gomp_doacross_ncounts;
+    if (n == 0) {
+        fprintf(stderr, "hookgomp: GOMP_doacross_wait fora de um laço doacross conhecido.\n");
+        abort();
+    }
+    long a[n];
+    a[0] = arg1;
+    va_list ap;
+    va_start(ap, arg1);
+    for (unsigned i = 1; i < n; i++) a[i] = va_arg(ap, long);
+    va_end(ap);
     PRE_GOMP_doacross_wait();
-    lib_GOMP_doacross_wait(arg1, __builtin_va_arg_pack());
+    switch (n) {
+      case 1: lib_GOMP_doacross_wait(a[0]); break;
+      case 2: lib_GOMP_doacross_wait(a[0], a[1]); break;
+      case 3: lib_GOMP_doacross_wait(a[0], a[1], a[2]); break;
+      case 4: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3]); break;
+      case 5: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4]); break;
+      case 6: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5]); break;
+      case 7: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6]); break;
+      case 8: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7]); break;
+      case 9: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]); break;
+      case 10: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9]); break;
+      case 11: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10]); break;
+      case 12: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11]); break;
+      case 13: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12]); break;
+      case 14: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13]); break;
+      case 15: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14]); break;
+      case 16: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15]); break;
+      case 17: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16]); break;
+      case 18: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17]); break;
+      case 19: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18]); break;
+      case 20: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19]); break;
+      case 21: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20]); break;
+      case 22: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21]); break;
+      case 23: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22]); break;
+      case 24: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23]); break;
+      case 25: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23], a[24]); break;
+      case 26: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23], a[24], a[25]); break;
+      case 27: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23], a[24], a[25], a[26]); break;
+      case 28: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23], a[24], a[25], a[26], a[27]); break;
+      case 29: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23], a[24], a[25], a[26], a[27], a[28]); break;
+      case 30: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23], a[24], a[25], a[26], a[27], a[28], a[29]); break;
+      case 31: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23], a[24], a[25], a[26], a[27], a[28], a[29], a[30]); break;
+      case 32: lib_GOMP_doacross_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23], a[24], a[25], a[26], a[27], a[28], a[29], a[30], a[31]); break;
+      default: hook_gomp_forward_variadic("GOMP_doacross_wait", (void (*)(void)) lib_GOMP_doacross_wait, "long", sizeof(a[0]), a, n); break;
+    }
     POST_GOMP_doacross_wait();
 }
 
@@ -1207,11 +1316,56 @@ void GOMP_doacross_ull_post (unsigned long long * arg1) {
     POST_GOMP_doacross_ull_post();
 }
 
-__attribute__((always_inline)) inline void GOMP_doacross_ull_wait (unsigned long long arg1, ...) {
+void GOMP_doacross_ull_wait (unsigned long long arg1, ...) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_doacross_ull_wait, "GOMP_doacross_ull_wait");
+    unsigned n = hook_gomp_doacross_ncounts;
+    if (n == 0) {
+        fprintf(stderr, "hookgomp: GOMP_doacross_ull_wait fora de um laço doacross conhecido.\n");
+        abort();
+    }
+    unsigned long long a[n];
+    a[0] = arg1;
+    va_list ap;
+    va_start(ap, arg1);
+    for (unsigned i = 1; i < n; i++) a[i] = va_arg(ap, unsigned long long);
+    va_end(ap);
     PRE_GOMP_doacross_ull_wait();
-    lib_GOMP_doacross_ull_wait(arg1, __builtin_va_arg_pack());
+    switch (n) {
+      case 1: lib_GOMP_doacross_ull_wait(a[0]); break;
+      case 2: lib_GOMP_doacross_ull_wait(a[0], a[1]); break;
+      case 3: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2]); break;
+      case 4: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3]); break;
+      case 5: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4]); break;
+      case 6: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5]); break;
+      case 7: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6]); break;
+      case 8: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7]); break;
+      case 9: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]); break;
+      case 10: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9]); break;
+      case 11: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10]); break;
+      case 12: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11]); break;
+      case 13: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12]); break;
+      case 14: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13]); break;
+      case 15: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14]); break;
+      case 16: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15]); break;
+      case 17: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16]); break;
+      case 18: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17]); break;
+      case 19: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18]); break;
+      case 20: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19]); break;
+      case 21: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20]); break;
+      case 22: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21]); break;
+      case 23: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22]); break;
+      case 24: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23]); break;
+      case 25: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23], a[24]); break;
+      case 26: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23], a[24], a[25]); break;
+      case 27: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23], a[24], a[25], a[26]); break;
+      case 28: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23], a[24], a[25], a[26], a[27]); break;
+      case 29: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23], a[24], a[25], a[26], a[27], a[28]); break;
+      case 30: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23], a[24], a[25], a[26], a[27], a[28], a[29]); break;
+      case 31: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23], a[24], a[25], a[26], a[27], a[28], a[29], a[30]); break;
+      case 32: lib_GOMP_doacross_ull_wait(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15], a[16], a[17], a[18], a[19], a[20], a[21], a[22], a[23], a[24], a[25], a[26], a[27], a[28], a[29], a[30], a[31]); break;
+      default: hook_gomp_forward_variadic("GOMP_doacross_ull_wait", (void (*)(void)) lib_GOMP_doacross_ull_wait, "unsigned long long", sizeof(a[0]), a, n); break;
+    }
     POST_GOMP_doacross_ull_wait();
 }
 
@@ -1234,16 +1388,20 @@ void GOMP_parallel_end () {
 void GOMP_parallel (void (*arg1) (void *), void * arg2, unsigned arg3, unsigned arg4) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_parallel, "GOMP_parallel");
+    unsigned hook_saved_ncounts = hook_gomp_doacross_ncounts;
     PRE_GOMP_parallel();
     lib_GOMP_parallel(arg1, arg2, arg3, arg4);
+    hook_gomp_doacross_ncounts = hook_saved_ncounts;
     POST_GOMP_parallel();
 }
 
 unsigned GOMP_parallel_reductions (void (*arg1) (void *), void * arg2, unsigned arg3, unsigned arg4) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_parallel_reductions, "GOMP_parallel_reductions");
+    unsigned hook_saved_ncounts = hook_gomp_doacross_ncounts;
     PRE_GOMP_parallel_reductions();
     unsigned res = lib_GOMP_parallel_reductions(arg1, arg2, arg3, arg4);
+    hook_gomp_doacross_ncounts = hook_saved_ncounts;
     POST_GOMP_parallel_reductions();
     return res;
 }
@@ -1408,8 +1566,10 @@ void GOMP_parallel_sections_start (void (*arg1) (void *), void * arg2, unsigned 
 void GOMP_parallel_sections (void (*arg1) (void *), void * arg2, unsigned arg3, unsigned arg4, unsigned arg5) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_parallel_sections, "GOMP_parallel_sections");
+    unsigned hook_saved_ncounts = hook_gomp_doacross_ncounts;
     PRE_GOMP_parallel_sections();
     lib_GOMP_parallel_sections(arg1, arg2, arg3, arg4, arg5);
+    hook_gomp_doacross_ncounts = hook_saved_ncounts;
     POST_GOMP_parallel_sections();
 }
 
@@ -1555,8 +1715,10 @@ void GOMP_interop (int arg1, int arg2, struct interop_obj_t *** arg3, const int 
 void GOMP_teams_reg (void (*arg1) (void *), void * arg2, unsigned arg3, unsigned arg4, unsigned arg5) {
     PRINT_FUNC_NAME;
     GET_RUNTIME_FUNCTION(lib_GOMP_teams_reg, "GOMP_teams_reg");
+    unsigned hook_saved_ncounts = hook_gomp_doacross_ncounts;
     PRE_GOMP_teams_reg();
     lib_GOMP_teams_reg(arg1, arg2, arg3, arg4, arg5);
+    hook_gomp_doacross_ncounts = hook_saved_ncounts;
     POST_GOMP_teams_reg();
 }
 

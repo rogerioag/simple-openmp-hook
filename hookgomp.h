@@ -1,5 +1,5 @@
-#ifndef hookomp_h__
-#define hookomp_h__
+#ifndef hookgomp_h__
+#define hookgomp_h__
 
 #include <dlfcn.h>
 #include <stdarg.h>
@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include "debug.h"
-#include "prepostdef.h"
+#include "prepostdef_gomp.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -165,4 +165,4 @@ extern void (*lib_GOMP_error) (const char *, size_t);
 }
 #endif
 
-#endif /* hookomp_h__ */
+#endif /* hookgomp_h__ */
