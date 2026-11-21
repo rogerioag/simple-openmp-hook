@@ -1,0 +1,442 @@
+
+;; Function main (main, funcdef_no=6, decl_uid=4601, cgraph_uid=7, symbol_order=6)
+
+
+OMP region tree
+
+bb 17: gimple_omp_parallel
+    bb 24: gimple_omp_for
+    bb 25: GIMPLE_OMP_CONTINUE
+    bb 26: GIMPLE_OMP_RETURN
+    bb 21: gimple_omp_for
+    bb 22: GIMPLE_OMP_CONTINUE
+    bb 23: GIMPLE_OMP_RETURN
+    bb 18: gimple_omp_for
+    bb 19: GIMPLE_OMP_CONTINUE
+    bb 20: GIMPLE_OMP_RETURN
+bb 27: GIMPLE_OMP_RETURN
+bb 12: gimple_omp_parallel
+    bb 13: gimple_omp_for
+    bb 14: GIMPLE_OMP_CONTINUE
+    bb 15: GIMPLE_OMP_RETURN
+bb 16: GIMPLE_OMP_RETURN
+bb 7: gimple_omp_parallel
+    bb 8: gimple_omp_for
+    bb 9: GIMPLE_OMP_CONTINUE
+    bb 10: GIMPLE_OMP_RETURN
+bb 11: GIMPLE_OMP_RETURN
+bb 2: gimple_omp_parallel
+    bb 3: gimple_omp_for
+    bb 4: GIMPLE_OMP_CONTINUE
+    bb 5: GIMPLE_OMP_RETURN
+bb 6: GIMPLE_OMP_RETURN
+
+Added new low gimple function main._omp_fn.3 to callgraph
+Introduced new external node (__builtin_GOMP_loop_nonmonotonic_dynamic_start/12).
+Introduced new external node (omp_get_thread_num/13).
+Introduced new external node (printf/14).
+Introduced new external node (__builtin_GOMP_loop_nonmonotonic_dynamic_next/15).
+Introduced new external node (__builtin_GOMP_loop_end/16).
+Introduced new external node (__builtin_GOMP_loop_maybe_nonmonotonic_runtime_start/17).
+Introduced new external node (__builtin_GOMP_loop_maybe_nonmonotonic_runtime_next/18).
+Introduced new external node (__builtin_omp_get_num_threads/19).
+Introduced new external node (__builtin_omp_get_thread_num/20).
+
+;; Function main._omp_fn.3 (main._omp_fn.3, funcdef_no=10, decl_uid=4634, cgraph_uid=11, symbol_order=10)
+
+void main._omp_fn.3 (void * .omp_data_i)
+{
+  int D.4688;
+  int i;
+  int D.4686;
+  int D.4685;
+  int D.4684;
+  int tt.5;
+  int q.4;
+  int D.4681;
+  int D.4680;
+  bool D.4679;
+  int D.4678;
+  int D.4677;
+  long int .iend0.9;
+  int i;
+  long int .istart0.8;
+  bool D.4673;
+  long int .iend0.7;
+  long int .istart0.6;
+  bool D.4670;
+  int D.4669;
+  int D.4668;
+  long int .iend0.13;
+  int i;
+  long int .istart0.12;
+  bool D.4664;
+  long int .iend0.11;
+  long int .istart0.10;
+
+  <bb 37> :
+
+  <bb 18> :
+  D.4664 = __builtin_GOMP_loop_nonmonotonic_dynamic_start (0, 8, 1, 1, &.istart0.10, &.iend0.11);
+  if (D.4664 != 0)
+    goto <bb 35>; [INV]
+  else
+    goto <bb 20>; [INV]
+
+  <bb 35> :
+  .istart0.12 = .istart0.10;
+  i = (int) .istart0.12;
+  .iend0.13 = .iend0.11;
+  D.4668 = (int) .iend0.13;
+
+  <bb 19> :
+  D.4669 = omp_get_thread_num ();
+  printf ("loop: 2, thread: %lu, iteration: %d\n", D.4669, i);
+  i = i + 1;
+  if (i < D.4668)
+    goto <bb 19>; [87.50%]
+  else
+    goto <bb 36>; [12.50%]
+
+  <bb 36> :
+  D.4670 = __builtin_GOMP_loop_nonmonotonic_dynamic_next (&.istart0.10, &.iend0.11);
+  if (D.4670 != 0)
+    goto <bb 35>; [INV]
+  else
+    goto <bb 20>; [INV]
+
+  <bb 20> :
+  __builtin_GOMP_loop_end ();
+
+  <bb 21> :
+  D.4673 = __builtin_GOMP_loop_maybe_nonmonotonic_runtime_start (0, 8, 1, &.istart0.6, &.iend0.7);
+  if (D.4673 != 0)
+    goto <bb 33>; [INV]
+  else
+    goto <bb 23>; [INV]
+
+  <bb 33> :
+  .istart0.8 = .istart0.6;
+  i = (int) .istart0.8;
+  .iend0.9 = .iend0.7;
+  D.4677 = (int) .iend0.9;
+
+  <bb 22> :
+  D.4678 = omp_get_thread_num ();
+  printf ("loop: 2, thread: %lu, iteration: %d\n", D.4678, i);
+  i = i + 1;
+  if (i < D.4677)
+    goto <bb 22>; [87.50%]
+  else
+    goto <bb 34>; [12.50%]
+
+  <bb 34> :
+  D.4679 = __builtin_GOMP_loop_maybe_nonmonotonic_runtime_next (&.istart0.6, &.iend0.7);
+  if (D.4679 != 0)
+    goto <bb 33>; [INV]
+  else
+    goto <bb 23>; [INV]
+
+  <bb 23> :
+  __builtin_GOMP_loop_end ();
+
+  <bb 24> :
+  D.4680 = __builtin_omp_get_num_threads ();
+  D.4681 = __builtin_omp_get_thread_num ();
+  q.4 = 8 / D.4680;
+  tt.5 = 8 % D.4680;
+  if (D.4681 < tt.5)
+    goto <bb 31>; [25.00%]
+  else
+    goto <bb 32>; [75.00%]
+
+  <bb 32> :
+  D.4684 = q.4 * D.4681;
+  D.4685 = D.4684 + tt.5;
+  D.4686 = D.4685 + q.4;
+  if (D.4685 >= D.4686)
+    goto <bb 26>; [INV]
+  else
+    goto <bb 30>; [INV]
+
+  <bb 30> :
+  i = D.4685;
+
+  <bb 25> :
+  D.4688 = omp_get_thread_num ();
+  printf ("loop: 2, thread: %lu, iteration: %d\n", D.4688, i);
+  i = i + 1;
+  if (i < D.4686)
+    goto <bb 25>; [INV]
+  else
+    goto <bb 26>; [INV]
+
+  <bb 26> :
+
+  <bb 27> :
+  return;
+
+  <bb 31> :
+  tt.5 = 0;
+  q.4 = q.4 + 1;
+  goto <bb 32>; [100.00%]
+
+}
+
+
+Added new low gimple function main._omp_fn.2 to callgraph
+
+;; Function main._omp_fn.2 (main._omp_fn.2, funcdef_no=9, decl_uid=4629, cgraph_uid=10, symbol_order=9)
+
+void main._omp_fn.2 (void * .omp_data_i)
+{
+  int D.4708;
+  int i;
+  int D.4706;
+  int D.4705;
+  int D.4704;
+  int D.4703;
+  int D.4702;
+  int D.4701;
+  int .trip.14;
+  int D.4699;
+  int D.4698;
+
+  <bb 42> :
+
+  <bb 13> :
+  D.4698 = __builtin_omp_get_num_threads ();
+  D.4699 = __builtin_omp_get_thread_num ();
+  .trip.14 = 0;
+  D.4701 = D.4699 * 32;
+
+  <bb 39> :
+  D.4702 = .trip.14 * D.4698;
+  D.4703 = D.4702 + D.4699;
+  D.4704 = D.4703 * 32;
+  D.4705 = D.4704 + 32;
+  D.4706 = MIN_EXPR <D.4705, 8>;
+  if (D.4704 < 8)
+    goto <bb 40>; [INV]
+  else
+    goto <bb 15>; [INV]
+
+  <bb 40> :
+  i = D.4704;
+
+  <bb 14> :
+  D.4708 = omp_get_thread_num ();
+  printf ("loop: 1, thread: %lu, iteration: %d\n", D.4708, i);
+  i = i + 1;
+  if (i < D.4706)
+    goto <bb 14>; [INV]
+  else
+    goto <bb 41>; [INV]
+
+  <bb 41> :
+  .trip.14 = .trip.14 + 1;
+  goto <bb 39>; [100.00%]
+
+  <bb 15> :
+
+  <bb 16> :
+  return;
+
+}
+
+
+Added new low gimple function main._omp_fn.1 to callgraph
+Introduced new external node (__builtin_GOMP_loop_end_nowait/21).
+
+;; Function main._omp_fn.1 (main._omp_fn.1, funcdef_no=8, decl_uid=4624, cgraph_uid=9, symbol_order=8)
+
+void main._omp_fn.1 (void * .omp_data_i)
+{
+  bool D.4724;
+  int D.4723;
+  int D.4722;
+  long int .iend0.18;
+  int i;
+  long int .istart0.17;
+  bool D.4718;
+  long int .iend0.16;
+  long int .istart0.15;
+
+  <bb 46> :
+
+  <bb 8> :
+  D.4718 = __builtin_GOMP_loop_maybe_nonmonotonic_runtime_next (&.istart0.15, &.iend0.16);
+  if (D.4718 != 0)
+    goto <bb 44>; [INV]
+  else
+    goto <bb 10>; [INV]
+
+  <bb 44> :
+  .istart0.17 = .istart0.15;
+  i = (int) .istart0.17;
+  .iend0.18 = .iend0.16;
+  D.4722 = (int) .iend0.18;
+
+  <bb 9> :
+  D.4723 = omp_get_thread_num ();
+  printf ("loop: 1, thread: %lu, iteration: %d\n", D.4723, i);
+  i = i + 1;
+  if (i < D.4722)
+    goto <bb 9>; [87.50%]
+  else
+    goto <bb 45>; [12.50%]
+
+  <bb 45> :
+  D.4724 = __builtin_GOMP_loop_maybe_nonmonotonic_runtime_next (&.istart0.15, &.iend0.16);
+  if (D.4724 != 0)
+    goto <bb 44>; [INV]
+  else
+    goto <bb 10>; [INV]
+
+  <bb 10> :
+  __builtin_GOMP_loop_end_nowait ();
+
+  <bb 11> :
+  return;
+
+}
+
+
+Added new low gimple function main._omp_fn.0 to callgraph
+
+;; Function main._omp_fn.0 (main._omp_fn.0, funcdef_no=7, decl_uid=4619, cgraph_uid=8, symbol_order=7)
+
+void main._omp_fn.0 (void * .omp_data_i)
+{
+  bool D.4740;
+  int D.4739;
+  int D.4738;
+  long int .iend0.22;
+  int i;
+  long int .istart0.21;
+  bool D.4734;
+  long int .iend0.20;
+  long int .istart0.19;
+
+  <bb 50> :
+
+  <bb 3> :
+  D.4734 = __builtin_GOMP_loop_nonmonotonic_dynamic_next (&.istart0.19, &.iend0.20);
+  if (D.4734 != 0)
+    goto <bb 48>; [INV]
+  else
+    goto <bb 5>; [INV]
+
+  <bb 48> :
+  .istart0.21 = .istart0.19;
+  i = (int) .istart0.21;
+  .iend0.22 = .iend0.20;
+  D.4738 = (int) .iend0.22;
+
+  <bb 4> :
+  D.4739 = omp_get_thread_num ();
+  printf ("loop: 1, thread: %lu, iteration: %d\n", D.4739, i);
+  i = i + 1;
+  if (i < D.4738)
+    goto <bb 4>; [87.50%]
+  else
+    goto <bb 49>; [12.50%]
+
+  <bb 49> :
+  D.4740 = __builtin_GOMP_loop_nonmonotonic_dynamic_next (&.istart0.19, &.iend0.20);
+  if (D.4740 != 0)
+    goto <bb 48>; [INV]
+  else
+    goto <bb 5>; [INV]
+
+  <bb 5> :
+  __builtin_GOMP_loop_end_nowait ();
+
+  <bb 6> :
+  return;
+
+}
+
+
+
+;; Function main (main, funcdef_no=6, decl_uid=4601, cgraph_uid=7, symbol_order=6)
+
+Merging blocks 2 and 51
+Merging blocks 2 and 7
+Merging blocks 2 and 47
+Merging blocks 2 and 12
+Merging blocks 2 and 43
+Merging blocks 2 and 17
+Merging blocks 2 and 38
+Merging blocks 2 and 28
+int main ()
+{
+  bool D.4731;
+  long int .iend0.22;
+  int D.4730;
+  long int .istart0.21;
+  bool D.4727;
+  long int .iend0.20;
+  long int .istart0.19;
+  bool D.4715;
+  long int .iend0.18;
+  int D.4714;
+  long int .istart0.17;
+  bool D.4711;
+  long int .iend0.16;
+  long int .istart0.15;
+  int D.4696;
+  int D.4697;
+  int D.4693;
+  int D.4694;
+  int D.4695;
+  int D.4692;
+  int .trip.14;
+  int D.4690;
+  int D.4689;
+  bool D.4661;
+  long int .iend0.13;
+  int D.4660;
+  long int .istart0.12;
+  bool D.4657;
+  long int .iend0.11;
+  long int .istart0.10;
+  bool D.4654;
+  long int .iend0.9;
+  int D.4653;
+  long int .istart0.8;
+  bool D.4650;
+  long int .iend0.7;
+  long int .istart0.6;
+  int D.4647;
+  int D.4645;
+  int D.4646;
+  int tt.5;
+  int q.4;
+  int D.4642;
+  int D.4641;
+  int i;
+  int i;
+  int i;
+  int i;
+  int i;
+  int i;
+  int i;
+  int D.4617;
+
+  <bb 2> :
+  __builtin_puts (&"Antes das regi\xc3\xb5es paralelas."[0]);
+  __builtin_GOMP_parallel_loop_nonmonotonic_dynamic (main._omp_fn.0, 0B, 0, 0, 8, 1, 1, 0);
+  __builtin_GOMP_parallel_loop_maybe_nonmonotonic_runtime (main._omp_fn.1, 0B, 0, 0, 8, 1, 0);
+  __builtin_GOMP_parallel (main._omp_fn.2, 0B, 0, 0);
+  __builtin_GOMP_parallel (main._omp_fn.3, 0B, 0, 0);
+  __builtin_puts (&"Fora das regi\xc3\xb5es paralelas."[0]);
+  D.4617 = 0;
+
+  <bb 3> :
+<L0>:
+  return D.4617;
+
+}
+
+
